@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RootKit Rig // Wake</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+    :root {
+      --bg:      #04060f;
+      --bg2:     #080d1a;
+      --bg3:     #0b1120;
+      --cyan:    #00fff7;
+      --green:   #00ff88;
+      --red:     #ff2a2a;
+      --amber:   #ffb800;
+      --text:    #94b8d0;
+      --border:  #0ff3;
+      --mono:    'Share Tech Mono', monospace;
+      --display: 'Orbitron', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      font-family: var(--mono);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    body::before {
+      content: '';
+      pointer-events: none;
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        to bottom, transparent 0px, transparent 3px,
+        rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px
+      );
+      z-index: 999;
+    }
+
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 24px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 0 32px rgba(0,255,247,0.08);
+      animation: borderGlow 4s ease-in-out infinite;
+    }
+
+    @keyframes borderGlow {
+      0%,100% { border-color: #0ff3; }
+      50%      { border-color: #0ff8; }
+    }
+
+    .logo {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 1.1em;
+      color: var(--cyan);
+      text-shadow: 0 0 8px var(--cyan);
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    .sub {
+      font-size: 0.65em;
+      color: #2a4a5a;
+      letter-spacing: 2px;
+      margin-bottom: 24px;
+    }
+
+    .sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #0ff3, transparent);
+      margin: 20px 0;
+    }
+
+    /* CONFIG SCREEN */
+    .config-screen { display: none; }
+    .config-screen.active { display: block; }
+
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+    .form-row label {
+      font-size: 0.65em;
+      color: #4a6a7a;
+      letter-spacing: 2px;
+    }
+    .form-input {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-family: var(--mono);
+      font-size: 0.8em;
+      color: var(--text);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--cyan); }
+    .form-input::placeholder { color: #1a3a4a; }
+
+    /* WAKE SCREEN */
+    .wake-screen { display: none; }
+    .wake-screen.active { display: block; }
+
+    .pc-icon {
+      font-size: 3.5em;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .pc-status {
+      font-family: var(--display);
+      font-size: 0.72em;
+      letter-spacing: 3px;
+      margin-bottom: 24px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    .pc-status.unknown { color: #2a5a6a; border: 1px solid #1a3a4a; }
+    .pc-status.online  { color: var(--green); border: 1px solid var(--green); background: #00ff8812; }
+    .pc-status.offline { color: var(--amber); border: 1px solid var(--amber); background: #ffb80012; }
+
+    /* BUTTONS */
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--cyan);
+      background: #00fff715;
+      color: var(--cyan);
+      font-family: var(--display);
+      font-size: 0.85em;
+      font-weight: 700;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: all 0.25s;
+      margin-bottom: 10px;
+    }
+    .btn-primary:hover { background: #00fff730; box-shadow: 0 0 16px #00fff740; }
+
+    .btn-wake {
+      border-color: var(--green);
+      background: #00ff8815;
+      color: var(--green);
+      box-shadow: 0 0 10px #00ff8825;
+    }
+    .btn-wake:hover:not(:disabled) { background: #00ff8830; box-shadow: 0 0 24px #00ff8850; }
+    .btn-wake:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .btn-secondary {
+      width: 100%;
+      padding: 9px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: #2a5a6a;
+      font-family: var(--mono);
+      font-size: 0.72em;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+      text-decoration: none;
+      display: block;
+    }
+    .btn-secondary:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    .log {
+      margin-top: 16px;
+      font-size: 0.7em;
+      color: #2a5a6a;
+      min-height: 18px;
+      letter-spacing: 1px;
+    }
+    .log.success { color: var(--green); }
+    .log.error   { color: var(--red); }
+    .log.info    { color: var(--cyan); }
+
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+    .pulsing { animation: pulse 1.2s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">RootKit Rig</div>
+    <div class="sub">// Machine control</div>
+
+    <!-- CONFIG SCREEN -->
+    <div class="config-screen active" id="config-screen">
+      <div class="sep"></div>
+      <div class="form-row">
+        <label>APP TOKEN FREEBOX</label>
+        <input type="password" class="form-input" id="cfg-token" placeholder="app_token...">
+      </div>
+      <div class="form-row">
+        <label>ADRESSE MAC DU PC</label>
+        <input type="text" class="form-input" id="cfg-mac" placeholder="xx:xx:xx:xx:xx:xx">
+      </div>
+      <div class="form-row">
+        <label>IP LOCALE DU PC</label>
+        <input type="text" class="form-input" id="cfg-ip" placeholder="1xx.xxx.x.xx">
+      </div>
+      <div class="form-row">
+        <label>PORT DU SERVEUR</label>
+        <input type="text" class="form-input" id="cfg-port" placeholder="3000" value="8080">
+      </div>
+      <div class="sep"></div>
+      <button class="btn-primary" id="cfg-save">✓ Sauvegarder</button>
+      <div class="log" id="cfg-log"></div>
+    </div>
+
+    <!-- WAKE SCREEN -->
+    <div class="wake-screen" id="wake-screen">
+      <span class="pc-icon" id="pc-icon">🖥️</span>
+      <div class="pc-status unknown pulsing" id="pc-status">VÉRIFICATION...</div>
+      <div class="sep"></div>
+      <button class="btn-primary btn-wake" id="wake-btn" disabled>⚡ WAKE ON LAN</button>
+      <a class="btn-secondary" id="dashboard-link" href="#" style="display:none;">→ Ouvrir le dashboard</a>
+      <button class="btn-secondary" id="edit-config">⚙ Modifier la configuration</button>
+      <div class="log" id="wake-log"></div>
+    </div>
+  </div>
+
+  <script>
+  // ── STORAGE ───────────────────────────────────────────────────────────────
+  const KEYS = { token: 'rk_token', mac: 'rk_mac', ip: 'rk_ip', port: 'rk_port' };
+
+  function loadConfig() {
+    return {
+      token: localStorage.getItem(KEYS.token) || '',
+      mac:   localStorage.getItem(KEYS.mac)   || '',
+      ip:    localStorage.getItem(KEYS.ip)    || '',
+      port:  localStorage.getItem(KEYS.port)  || '',
+    };
+  }
+
+  function saveConfig(cfg) {
+    Object.entries(cfg).forEach(([k, v]) => localStorage.setItem(KEYS[k], v));
+  }
+
+  // ── SCREENS ───────────────────────────────────────────────────────────────
+  function showConfig() {
+    document.getElementById('config-screen').classList.add('active');
+    document.getElementById('wake-screen').classList.remove('active');
+    const cfg = loadConfig();
+    document.getElementById('cfg-token').value = cfg.token;
+    document.getElementById('cfg-mac').value   = cfg.mac;
+    document.getElementById('cfg-ip').value    = cfg.ip;
+    document.getElementById('cfg-port').value  = cfg.port;
+  }
+
+  function showWake() {
+    document.getElementById('config-screen').classList.remove('active');
+    document.getElementById('wake-screen').classList.add('active');
+  }
+
+  // ── CONFIG SAVE ───────────────────────────────────────────────────────────
+  document.getElementById('cfg-save').onclick = () => {
+    const token = document.getElementById('cfg-token').value.trim();
+    const mac   = document.getElementById('cfg-mac').value.trim();
+    const ip    = document.getElementById('cfg-ip').value.trim();
+    const port  = document.getElementById('cfg-port').value.trim() || '8080';
+    const log   = document.getElementById('cfg-log');
+
+    if (!token || !mac || !ip) {
+      log.textContent = 'Token, MAC et IP requis.';
+      log.className   = 'log error';
+      return;
+    }
+
+    saveConfig({ token, mac, ip, port });
+    log.textContent = '✓ Sauvegardé !';
+    log.className   = 'log success';
+    setTimeout(() => { showWake(); checkPC(); }, 800);
+  };
+
+  document.getElementById('edit-config').onclick = showConfig;
+
+  // ── STATUS PC ─────────────────────────────────────────────────────────────
+  const statusEl  = document.getElementById('pc-status');
+  const iconEl    = document.getElementById('pc-icon');
+  const wakeBtn   = document.getElementById('wake-btn');
+  const dashLink  = document.getElementById('dashboard-link');
+  const wakeLog   = document.getElementById('wake-log');
+
+  function setLog(msg, type = '') {
+    wakeLog.textContent = msg;
+    wakeLog.className   = 'log ' + type;
+  }
+
+  let pcOnline = null;
+
+  async function checkPC() {
+    const { ip, port } = loadConfig();
+    if (!ip) return;
+    try {
+      const r = await fetch(`http://${ip}:${port}/status`,
+        { signal: AbortSignal.timeout(2500) });
+      const d = await r.json();
+      setOnline(d.online);
+    } catch {
+      setOnline(false);
+    }
+  }
+
+  function setOnline(online) {
+    if (pcOnline === online) return;
+    pcOnline = online;
+    const { ip, port } = loadConfig();
+
+    if (online) {
+      statusEl.textContent = '● ALLUMÉ';
+      statusEl.className   = 'pc-status online';
+      statusEl.classList.remove('pulsing');
+      iconEl.textContent   = '🖥️';
+      wakeBtn.disabled     = true;
+      dashLink.style.display = 'block';
+      dashLink.href        = `http://${ip}:${port}`;
+      setLog('');
+    } else {
+      statusEl.textContent = '○ ÉTEINT';
+      statusEl.className   = 'pc-status offline';
+      statusEl.classList.remove('pulsing');
+      iconEl.textContent   = '💤';
+      wakeBtn.disabled     = false;
+      dashLink.style.display = 'none';
+    }
+  }
+
+  // ── FREEBOX WOL ───────────────────────────────────────────────────────────
+  const FREEBOX = 'http://mafreebox.freebox.fr/api/v6';
+
+  async function hmacSHA1(key, message) {
+    const enc     = new TextEncoder();
+    const keyData = await crypto.subtle.importKey(
+      'raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']
+    );
+    const sig = await crypto.subtle.sign('HMAC', keyData, enc.encode(message));
+    return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function freeboxWOL() {
+    const { token, mac } = loadConfig();
+
+    // Challenge
+    const r1        = await fetch(FREEBOX + '/login');
+    const d1        = await r1.json();
+    const challenge = d1.result.challenge;
+    const password  = await hmacSHA1(token, challenge);
+
+    // Session
+    const r2 = await fetch(FREEBOX + '/login/session', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ app_id: 'rootkit.rig', password })
+    });
+    const d2 = await r2.json();
+    if (!d2.success) throw new Error('Session Freebox échouée');
+    const sessionToken = d2.result.session_token;
+
+    // WOL
+    const r3 = await fetch(FREEBOX + '/network/wake_on_lan', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Fbx-App-Auth': sessionToken },
+      body:    JSON.stringify({ mac: mac.toUpperCase().replace(/-/g, ':') })
+    });
+    const d3 = await r3.json();
+    if (!d3.success) throw new Error(d3.msg || 'WOL échoué');
+  }
+
+  wakeBtn.addEventListener('click', async () => {
+    wakeBtn.disabled = true;
+    iconEl.classList.add('pulsing');
+    setLog('Connexion à la Freebox...', 'info');
+    try {
+      await freeboxWOL();
+      setLog('✓ Magic packet envoyé ! Démarrage en cours...', 'success');
+      iconEl.textContent = '⚡';
+      let tries = 0;
+      const iv = setInterval(async () => {
+        tries++;
+        await checkPC();
+        if (pcOnline || tries >= 15) {
+          clearInterval(iv);
+          iconEl.classList.remove('pulsing');
+          if (!pcOnline) setLog('Timeout — vérifie que le BIOS WOL est activé.', 'error');
+        }
+      }, 3000);
+    } catch (e) {
+      setLog(`Erreur : ${e.message}`, 'error');
+      iconEl.classList.remove('pulsing');
+      wakeBtn.disabled = false;
+    }
+  });
+
+  // ── INIT ──────────────────────────────────────────────────────────────────
+  const cfg = loadConfig();
+  if (cfg.token && cfg.mac && cfg.ip) {
+    showWake();
+    checkPC();
+    setInterval(checkPC, 5000);
+  } else {
+    showConfig();
+  }
+  </script>
+</body>
+</html>
