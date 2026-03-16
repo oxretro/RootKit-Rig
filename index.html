@@ -64,11 +64,11 @@
 
     .logo {
       font-family: var(--display);
-      font-weight: 700;
       font-size: 1.1em;
+      font-weight: 700;
       color: var(--cyan);
       text-shadow: 0 0 8px var(--cyan);
-      letter-spacing: 2px;
+      letter-spacing: 3px;
       margin-bottom: 4px;
     }
 
@@ -202,7 +202,7 @@
 <body>
   <div class="card">
     <div class="logo">RootKit Rig</div>
-    <div class="sub">// Machine control</div>
+    <div class="sub">// MACHINE CONTRÔLE</div>
 
     <!-- CONFIG SCREEN -->
     <div class="config-screen active" id="config-screen">
@@ -346,8 +346,8 @@
     }
   }
 
-  // ── FREEBOX WOL ───────────────────────────────────────────────────────────
-  const FREEBOX = 'http://mafreebox.freebox.fr/api/v6';
+  // ── FREEBOX WOL via Cloudflare Worker ────────────────────────────────────
+  const WORKER = 'https://rootkit-wol.retr0ctivist.workers.dev';
 
   async function hmacSHA1(key, message) {
     const enc     = new TextEncoder();
@@ -361,14 +361,14 @@
   async function freeboxWOL() {
     const { token, mac } = loadConfig();
 
-    // Challenge
-    const r1        = await fetch(FREEBOX + '/login');
+    // Challenge via Worker
+    const r1        = await fetch(WORKER + '/login');
     const d1        = await r1.json();
     const challenge = d1.result.challenge;
     const password  = await hmacSHA1(token, challenge);
 
-    // Session
-    const r2 = await fetch(FREEBOX + '/login/session', {
+    // Session via Worker
+    const r2 = await fetch(WORKER + '/session', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ app_id: 'rootkit.rig', password })
@@ -377,11 +377,11 @@
     if (!d2.success) throw new Error('Session Freebox échouée');
     const sessionToken = d2.result.session_token;
 
-    // WOL
-    const r3 = await fetch(FREEBOX + '/network/wake_on_lan', {
+    // WOL via Worker
+    const r3 = await fetch(WORKER + '/wol', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Fbx-App-Auth': sessionToken },
-      body:    JSON.stringify({ mac: mac.toUpperCase().replace(/-/g, ':') })
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ session_token: sessionToken, mac: mac.toUpperCase().replace(/-/g, ':') })
     });
     const d3 = await r3.json();
     if (!d3.success) throw new Error(d3.msg || 'WOL échoué');
